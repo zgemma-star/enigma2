@@ -4,6 +4,8 @@ hw_info = None
 
 class HardwareInfo:
 	device_name = _("unavailable")
+	device_boxtype = None
+	device_brandname = None
 	device_model = None
 	device_version = ""
 	device_revision = ""
@@ -34,7 +36,13 @@ class HardwareInfo:
 		except:
 			pass
 
-		# Model
+		# Brandname ... bit odd, but history prevails
+		try:
+			self.device_brandname = open("/proc/stb/info/brandname").read().strip()
+		except:
+			pass
+
+		# Boxtype
 		for line in open((resolveFilename(SCOPE_SKIN, 'hw_info/hw_info.cfg')), 'r'):
 			if not line.startswith('#') and not line.isspace():
 				l = line.strip().replace('\t', ' ')
@@ -44,35 +52,31 @@ class HardwareInfo:
 					infoFname = l
 					prefix = ""
 				try:
-					self.device_model = prefix + open("/proc/stb/info/" + infoFname).read().strip()
+					self.device_boxtype = prefix + open("/proc/stb/info/" + infoFname).read().strip()
 					break
 				except:
 					pass
 
 		# standard values
-		self.device_model = self.device_model or self.device_name
-		self.machine_name = self.device_model
+		self.device_hw = self.device_boxtype or self.device_name
+		self.machine_name = self.device_boxtype or self.device_name
+		self.device_model = self.device_boxtype or self.device_name
 
 		# custom overrides for specific receivers
 		if self.device_model.startswith(("et9", "et4", "et5", "et6", "et7")):
 			self.machine_name = "%sx00" % self.device_model[:3]
 		elif self.device_model == "et11000":
 			self.machine_name = "et1x000"
-		elif self.device_model.startswith("H9 "):
-			self.device_name = self.device_model
-			self.device_model = self.device_name.replace(" ", "").lower()
-			self.machine_name = "h9combo"
-		elif self.device_model.startswith("H9"):
-			self.device_name = self.device_model
-			self.device_model = self.device_name.lower()
-			self.machine_name = "h9"
+		elif self.device_brandname == "Zgemma":
+			self.device_model = self.device_name
+			self.machine_name = self.device_name
 
 		if self.device_revision:
-			self.device_string = "%s (%s-%s)" % (self.device_model, self.device_revision, self.device_version)
+			self.device_string = "%s (%s-%s)" % (self.device_hw, self.device_revision, self.device_version)
 		elif self.device_version:
-			self.device_string = "%s (%s)" % (self.device_model, self.device_version)
+			self.device_string = "%s (%s)" % (self.device_hw, self.device_version)
 		else:
-			self.device_string = self.device_model
+			self.device_string = self.device_hw
 
 		# only some early DMM boxes do not have HDMI hardware
 		self.device_hdmi =  self.device_model not in ("dm800", "dm8000")
